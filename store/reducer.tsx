@@ -1,14 +1,24 @@
-import { IAnnouncement } from './state'
-import * as announcementActions from './actions'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-const initialState: IAnnouncement = {
-  message: 'No announcement...'
+
+export interface CategoryState {
+  data: any
 }
 
-export const reducer = (state = initialState, action: { type: any; message: any }) => {
-  switch (action.type) {
-    case announcementActions.UPDATE_ANNOUNCEMENT:
-      return Object.assign({}, state, { message: action.message })
-    default: return state
-  }
+const initialState: CategoryState = {
+  data: null,
 }
+
+export const categorySlice = createSlice({
+  name: 'category',
+  initialState,
+  reducers: {
+    setCategoryList: (state, action: PayloadAction<object>) => {
+      state.data = action.payload
+    },
+  },
+})
+
+export const { setCategoryList } = categorySlice.actions
+
+export default categorySlice.reducer
