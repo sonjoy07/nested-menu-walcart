@@ -19,6 +19,7 @@ import { Dispatch } from 'redux';
 import { useAppDispatch } from '../store/hooks';
 import { RootState } from '../store/store';
 import { useSelector } from 'react-redux';
+import Child from '../src/components/chilld'
 
 const actionDispatch = (dispatch: Dispatch) => ({
   setCategoryList: (page: any) => dispatch(setCategoryList(page)),
@@ -40,7 +41,7 @@ interface Category {
   __typename: String;
 }
 const Home: NextPage = () => {
-  const [row, setRow] = useState<number>(0);
+  const [row, setRow] = useState<number|undefined>();
   const { setCategoryList } = actionDispatch(useAppDispatch());
   const getData = useSelector((state: RootState) => state.category.data);
 
@@ -99,29 +100,32 @@ const Home: NextPage = () => {
           </ul>
         </li> */}
         {list
-          ?.filter((res: Category) => res.isActive === true)
+          ?.filter((res: Category) => res.isActive === true && res.parent.name=== 'root')
           .map((res: Category, key: number) => {
+            const child:any = list.filter((resChild: Category) => resChild.isActive === true && resChild.parent.uid=== res.uid)  
+            // console.log('parent',child,list);
+            
             return (
               <li
-                className={`${
-                  res.parents.length > 0 && styles.dropdownSubmenu
+                className={`${ styles.dropdownSubmenu
                 } ${row === key && styles.active}`}
                 key={key}
                 onClick={() => setRow(key)}
               >
                 {res.name}
-                {res.parents.length > 0 && (
+                {child.length > 0 && (
                   <>
                     <ArrowForwardIosIcon sx={{ float: 'right' }} />
                     {row === key ? (
-                      <ul
-                        key={key}
-                        className={`${styles.dropdownmenu} ${styles.nestedMenu} `}
-                      >
-                        {res.parents.map((res: ParentCategory, key: number) => {
-                          return <li key={key}>{res.name}</li>;
-                        })}
-                      </ul>
+                      <Child keyData={key} childData={child} list={list}/>
+                      // <ul
+                      //   key={key}
+                      //   className={`${styles.dropdownmenu} ${styles.nestedMenu} `}
+                      // >
+                      //   {child.map((res: ParentCategory, key: number) => {
+                      //     return <li key={key}>{res.name}</li>;
+                      //   })}
+                      // </ul>
                     ) : (
                       <></>
                     )}
