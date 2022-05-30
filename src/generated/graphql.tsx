@@ -77,6 +77,7 @@ export type CategoryCreateInput = {
 
 export type CategoryFilterInput = {
   name?: InputMaybe<Scalars['String']>;
+  parentCategoryUid?: InputMaybe<Scalars['String']>;
   uid?: InputMaybe<Scalars['String']>;
 };
 
@@ -269,12 +270,127 @@ export type UpdateCategoryCreateInput = {
   name?: InputMaybe<Scalars['String']>;
 };
 
+export type CreateCategoryMutationVariables = Exact<{
+  category: CategoryCreateInput;
+}>;
+
+
+export type CreateCategoryMutation = { __typename?: 'Mutation', createCategory?: { __typename?: 'CategoryResponse', message: string, statusCode: number, result?: { __typename?: 'Category', uid?: string | null, name?: string | null, isActive?: boolean | null, inActiveNote?: string | null, createdAt?: any | null, updatedAt?: any | null, parent?: { __typename?: 'ParentCategory', name?: string | null, uid?: string | null } | null, parents?: Array<{ __typename?: 'ParentCategory', name?: string | null, uid?: string | null } | null> | null } | null } | null };
+
+export type UpdateCategoryMutationVariables = Exact<{
+  category: UpdateCategoryCreateInput;
+  categoryUid: Scalars['String'];
+}>;
+
+
+export type UpdateCategoryMutation = { __typename?: 'Mutation', updateCategory?: { __typename?: 'CategoryResponse', message: string, result?: { __typename?: 'Category', isActive?: boolean | null, inActiveNote?: string | null, name?: string | null, uid?: string | null, updatedAt?: any | null, createdAt?: any | null, parent?: { __typename?: 'ParentCategory', name?: string | null, uid?: string | null } | null, parents?: Array<{ __typename?: 'ParentCategory', name?: string | null, uid?: string | null } | null> | null } | null } | null };
+
 export type CategoryListQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type CategoryListQuery = { __typename?: 'Query', getCategories?: { __typename?: 'CategoriesResponse', message: string, statusCode: number, result?: { __typename?: 'Categories', count?: number | null, categories?: Array<{ __typename?: 'Category', uid?: string | null, name?: string | null, isActive?: boolean | null, inActiveNote?: string | null, createdAt?: any | null, updatedAt?: any | null, parent?: { __typename?: 'ParentCategory', name?: string | null, uid?: string | null } | null, parents?: Array<{ __typename?: 'ParentCategory', name?: string | null, uid?: string | null } | null> | null } | null> | null } | null } | null };
 
 
+export const CreateCategoryDocument = gql`
+    mutation CreateCategory($category: CategoryCreateInput!) {
+  createCategory(category: $category) {
+    message
+    statusCode
+    result {
+      uid
+      name
+      parent {
+        name
+        uid
+      }
+      parents {
+        name
+        uid
+      }
+      isActive
+      inActiveNote
+      createdAt
+      updatedAt
+    }
+  }
+}
+    `;
+export type CreateCategoryMutationFn = Apollo.MutationFunction<CreateCategoryMutation, CreateCategoryMutationVariables>;
+
+/**
+ * __useCreateCategoryMutation__
+ *
+ * To run a mutation, you first call `useCreateCategoryMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateCategoryMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createCategoryMutation, { data, loading, error }] = useCreateCategoryMutation({
+ *   variables: {
+ *      category: // value for 'category'
+ *   },
+ * });
+ */
+export function useCreateCategoryMutation(baseOptions?: Apollo.MutationHookOptions<CreateCategoryMutation, CreateCategoryMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateCategoryMutation, CreateCategoryMutationVariables>(CreateCategoryDocument, options);
+      }
+export type CreateCategoryMutationHookResult = ReturnType<typeof useCreateCategoryMutation>;
+export type CreateCategoryMutationResult = Apollo.MutationResult<CreateCategoryMutation>;
+export type CreateCategoryMutationOptions = Apollo.BaseMutationOptions<CreateCategoryMutation, CreateCategoryMutationVariables>;
+export const UpdateCategoryDocument = gql`
+    mutation UpdateCategory($category: updateCategoryCreateInput!, $categoryUid: String!) {
+  updateCategory(category: $category, categoryUid: $categoryUid) {
+    message
+    result {
+      isActive
+      inActiveNote
+      name
+      parent {
+        name
+        uid
+      }
+      parents {
+        name
+        uid
+      }
+      uid
+      updatedAt
+      createdAt
+    }
+  }
+}
+    `;
+export type UpdateCategoryMutationFn = Apollo.MutationFunction<UpdateCategoryMutation, UpdateCategoryMutationVariables>;
+
+/**
+ * __useUpdateCategoryMutation__
+ *
+ * To run a mutation, you first call `useUpdateCategoryMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateCategoryMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateCategoryMutation, { data, loading, error }] = useUpdateCategoryMutation({
+ *   variables: {
+ *      category: // value for 'category'
+ *      categoryUid: // value for 'categoryUid'
+ *   },
+ * });
+ */
+export function useUpdateCategoryMutation(baseOptions?: Apollo.MutationHookOptions<UpdateCategoryMutation, UpdateCategoryMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateCategoryMutation, UpdateCategoryMutationVariables>(UpdateCategoryDocument, options);
+      }
+export type UpdateCategoryMutationHookResult = ReturnType<typeof useUpdateCategoryMutation>;
+export type UpdateCategoryMutationResult = Apollo.MutationResult<UpdateCategoryMutation>;
+export type UpdateCategoryMutationOptions = Apollo.BaseMutationOptions<UpdateCategoryMutation, UpdateCategoryMutationVariables>;
 export const CategoryListDocument = gql`
     query CategoryList {
   getCategories(pagination: {limit: 100, skip: 0}) {

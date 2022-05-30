@@ -1,4 +1,5 @@
 import {
+  Autocomplete,
   Box,
   Button,
   Container,
@@ -14,10 +15,15 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CreateIcon from '@mui/icons-material/Create';
-import {useCategoryListQuery} from '../src/generated/graphql'
+import { useCategoryListQuery, useCreateCategoryMutation } from '../src/generated/graphql'
+import { useAppDispatch } from '../store/hooks';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
+import { Dispatch } from 'redux';
+import { setCategoryList } from '../store/reducer';
 
 function createData(
   name: string,
@@ -28,6 +34,25 @@ function createData(
 ) {
   return { name, calories, fat, carbs, protein };
 }
+type ParentCategory = {
+  __typename: string;
+  name: string;
+  uid: string;
+};
+interface Category {
+  createdAt: string;
+  inActiveNote: null;
+  isActive: boolean;
+  name: string;
+  parent: ParentCategory;
+  parents: ParentCategory[];
+  uid: String;
+  updatedAt: String;
+  __typename: String;
+}
+const actionDispatch = (dispatch: Dispatch) => ({
+  setCategoryList: (page: any) => dispatch(setCategoryList(page)),
+});
 const style = {
   position: 'absolute',
   top: '50%',
@@ -39,16 +64,35 @@ const style = {
   boxShadow: 24,
   p: 4,
 };
+interface Iform {
+  parent: string
+  category: string
+}
+interface FormErrors {
+  [K: string]: string[];
+}
 const Category: NextPage = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const rows = [
-    createData('Frozen yoghurt', 159, 6.0, 24, 4.0),
-    createData('Ice cream sandwich', 237, 9.0, 37, 4.3),
-    createData('Eclair', 262, 16.0, 24, 6.0),
-    createData('Cupcake', 305, 3.7, 67, 4.3),
-    createData('Gingerbread', 356, 16.0, 49, 3.9),
-  ];
-  const { data, error, loading } = useCategoryListQuery();
+  const [formValue, setFormValue] = useState<Iform>();
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [category, setCategory] = useState<Array<object>>([])
+  const { setCategoryList } = actionDispatch(useAppDispatch());
+  const getData = useSelector((state: RootState) => state.category.data);
+
+  const { data, error, loading } = useCategoryListQuery();  
+  const [createCategoryMutation, { data1, loading1, error1 }] = useCreateCategoryMutation();
+
+  const fetchData = () => {
+    setCategoryList(data?.getCategories?.result);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [data]);
+
+  useEffect(() => {
+    setCategory(getData?.categories)
+  }, [getData]);
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -56,8 +100,12 @@ const Category: NextPage = () => {
   if (error || !data) {
     return <div>ERROR</div>;
   }
-  console.log('data',data);
-  
+  const options: any = category?.map((option: any) => option?.name)
+  console.log(formValue);
+  const saveCategory=()=>{
+    createCategoryMutation({ variables: { category: formValue } })
+  }
+
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <h2>Category List</h2>
@@ -68,7 +116,7 @@ const Category: NextPage = () => {
       >
         Add Category
       </Button>
-      
+
       <TableContainer component={Paper}>
         <Table
           sx={{ m: 1 }}
@@ -82,20 +130,20 @@ const Category: NextPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {/* {rows.map((row) => (
-              <TableRow
-                key={row.name}
+            {category?.filter((res: any) => res.isActive === true).map((row: any, key: number) => {
+              return (<TableRow
+                key={key}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
                 <TableCell component="th" scope="row">
                   {row.name}
                 </TableCell>
-                <TableCell align="right">{row.calories}</TableCell>
-                <TableCell align="right">{row.fat}</TableCell>
-                <TableCell align="right">{row.carbs}</TableCell>
-                <TableCell align="right">{row.protein}</TableCell>
-              </TableRow>
-            ))} */}
+                <TableCell align="right">
+                  <CreateIcon />
+                  <DeleteIcon />
+                </TableCell>
+              </TableRow>)
+            })}
             <TableRow
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
@@ -103,8 +151,6 @@ const Category: NextPage = () => {
                 Books
               </TableCell>
               <TableCell align="right">
-                <CreateIcon />
-                <DeleteIcon />
               </TableCell>
             </TableRow>
           </TableBody>
@@ -121,19 +167,25 @@ const Category: NextPage = () => {
       >
         <Box component="form" sx={style} noValidate autoComplete="off">
           <div>
-            <TextField
-              required
-              id="outlined-required"
-              label="Required"
-              defaultValue="Hello World"
+            <Autocomplete
+              options={category}
+              getOptionLabel={option => option.name}
+              renderInput={params => (
+                <TextField {...params} label="Select Parent" variant="standard" />
+              )}
+              onChange={(event, newValue: any) => {
+                setFormValue({ ...formValue, parent: newValue.uid });
+              }}
             />
             <TextField
               id="outlined-helperText"
-              label="Helper text"
-              defaultValue="Default Value"
-              helperText="Some important text"
+              label="Category"
+              helperText="For Subcategory please select parant "
+              onChange={(event: any) => {
+                setFormValue({ ...formValue, name: event.target.value });
+              }}
             />
-            <Button variant="contained" sx={{ mb: 2, float: 'right' }}>
+            <Button variant="contained" sx={{ mb: 2, float: 'right' }} onClick={()=>saveCategory()}>
               Save
             </Button>
           </div>
@@ -143,3 +195,4 @@ const Category: NextPage = () => {
   );
 };
 export default Category;
+
