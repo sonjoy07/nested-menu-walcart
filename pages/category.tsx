@@ -1,11 +1,11 @@
 import {
+  Alert,
   Autocomplete,
   Box,
   Button,
   Container,
   Modal,
   TextField,
-  Typography,
 } from '@mui/material';
 import { NextPage } from 'next';
 import Table from '@mui/material/Table';
@@ -16,14 +16,17 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { useEffect, useState } from 'react';
-import DeleteIcon from '@mui/icons-material/Delete';
 import CreateIcon from '@mui/icons-material/Create';
-import { useCategoryListQuery, useCreateCategoryMutation } from '../src/generated/graphql'
+import {
+  useCategoryListQuery,
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+} from '../src/generated/graphql';
 import { useAppDispatch } from '../store/hooks';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { Dispatch } from 'redux';
-import { setCategoryList } from '../store/reducer';
+import { setCategoryList, addCategoryList, updateCategoryList } from '../store/reducer';
 
 function createData(
   name: string,
@@ -53,6 +56,12 @@ interface Category {
 const actionDispatch = (dispatch: Dispatch) => ({
   setCategoryList: (page: any) => dispatch(setCategoryList(page)),
 });
+const addActionDispatch = (dispatch: Dispatch) => ({
+  addCategoryList: (page: any) => dispatch(addCategoryList(page)),
+});
+const updateActionDispatch = (dispatch: Dispatch) => ({
+  updateCategoryList: (page: any) => dispatch(updateCategoryList(page)),
+});
 const style = {
   position: 'absolute',
   top: '50%',
@@ -65,22 +74,26 @@ const style = {
   p: 4,
 };
 interface Iform {
-  parent: string
-  category: string
+  parent: string | null;
+  name: string;
 }
 interface FormErrors {
   [K: string]: string[];
 }
 const Category: NextPage = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [formValue, setFormValue] = useState<Iform>();
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [category, setCategory] = useState<Array<object>>([])
+  const [formValue, setFormValue] = useState<Iform>({ parent: null, name: '' });
+  const [id, setId] = useState<string>('');
+  const [success, setSuccess] = useState<boolean>(false);
+  const [category, setCategory] = useState<Array<object>>([]);
   const { setCategoryList } = actionDispatch(useAppDispatch());
+  const { addCategoryList } = addActionDispatch(useAppDispatch());
+  const { updateCategoryList } = updateActionDispatch(useAppDispatch());
   const getData = useSelector((state: RootState) => state.category.data);
 
-  const { data, error, loading } = useCategoryListQuery();  
-  const [createCategoryMutation, { data1, loading1, error1 }] = useCreateCategoryMutation();
+  const { data, error, loading } = useCategoryListQuery();
+  const [createCategoryMutation] = useCreateCategoryMutation();
+  const [updateCategoryMutation] = useUpdateCategoryMutation();
 
   const fetchData = () => {
     setCategoryList(data?.getCategories?.result);
@@ -91,7 +104,7 @@ const Category: NextPage = () => {
   }, [data]);
 
   useEffect(() => {
-    setCategory(getData?.categories)
+    setCategory(getData?.categories);
   }, [getData]);
   if (loading) {
     return <div>Loading...</div>;
@@ -100,99 +113,155 @@ const Category: NextPage = () => {
   if (error || !data) {
     return <div>ERROR</div>;
   }
-  const options: any = category?.map((option: any) => option?.name)
-  console.log(formValue);
-  const saveCategory=()=>{
-    createCategoryMutation({ variables: { category: formValue } })
-  }
-
+  const saveCategory = async () => {
+    if(id === ''){
+    const saveData: any = await createCategoryMutation({
+      variables: { category: formValue },
+    });
+    if (saveData.data.createCategory.message === 'SUCCESS') {
+      addCategoryList(saveData.data.createCategory.result);
+      setSuccess(true);
+      setTimeout(()=>{
+        setSuccess(false);
+        setFormValue({parent: null, name: '' });
+        setOpen(false);
+      },800)
+    }
+  }else{
+    const saveData: any = await updateCategoryMutation({
+      variables: { category:{name:formValue.name},categoryUid:id },
+    });
+    if (saveData.data.updateCategory.message === 'SUCCESS') {
+      updateCategoryList(saveData.data.updateCategory.result);
+      setSuccess(true);
+      setTimeout(()=>{
+        setSuccess(false);
+        setFormValue({parent: null, name: '' });
+        setOpen(false);
+      },800)
+    }
+    }    
+  };
+  const parent: any = formValue?.parent === 'root' ? null : formValue?.parent;
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <h2>Category List</h2>
-      <Button
-        variant="contained"
-        sx={{ mb: 2, float: 'right' }}
-        onClick={() => setOpen(true)}
-      >
-        Add Category
-      </Button>
-
-      <TableContainer component={Paper}>
-        <Table
-          sx={{ m: 1 }}
-          aria-label="simple table"
-          style={{ marginTop: '10px' }}
+    <>
+      <head>
+        <title>Category List</title>
+      </head>
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <h2>Category List</h2>
+        <Button
+          variant="contained"
+          sx={{ mb: 2, float: 'right' }}
+          onClick={() => {
+            setOpen(true);
+            setFormValue({ parent: null, name: '' });
+          }}
         >
-          <TableHead>
-            <TableRow>
-              <TableCell>Category</TableCell>
-              <TableCell align="right">Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {category?.filter((res: any) => res.isActive === true).map((row: any, key: number) => {
-              return (<TableRow
-                key={key}
+          Add Category
+        </Button>
+
+        <TableContainer component={Paper}>
+          <Table
+            sx={{ m: 1 }}
+            aria-label="simple table"
+            style={{ marginTop: '10px' }}
+          >
+            <TableHead>
+              <TableRow>
+                <TableCell>Category</TableCell>
+                <TableCell align="right">Action</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {category
+                ?.filter((res: any) => res.isActive === true)
+                .map((row: any, key: number) => {
+                  return (
+                    <TableRow
+                      key={key}
+                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    >
+                      <TableCell component="th" scope="row">
+                        {row.name}
+                      </TableCell>
+                      <TableCell align="right">
+                        <CreateIcon
+                          onClick={() => {
+                            setFormValue({
+                              parent: row.parent?.name,
+                              name: row.name,
+                            });
+                            setOpen(true);
+                            setId(row.uid)
+                          }}
+                        />
+                        {/* <DeleteIcon /> */}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              <TableRow
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
                 <TableCell component="th" scope="row">
-                  {row.name}
+                  Books
                 </TableCell>
-                <TableCell align="right">
-                  <CreateIcon />
-                  <DeleteIcon />
-                </TableCell>
-              </TableRow>)
-            })}
-            <TableRow
-              sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-            >
-              <TableCell component="th" scope="row">
-                Books
-              </TableCell>
-              <TableCell align="right">
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-        sx={{
-          '& .MuiTextField-root': { m: 1, width: '100%' },
-        }}
-      >
-        <Box component="form" sx={style} noValidate autoComplete="off">
-          <div>
-            <Autocomplete
-              options={category}
-              getOptionLabel={option => option.name}
-              renderInput={params => (
-                <TextField {...params} label="Select Parent" variant="standard" />
-              )}
-              onChange={(event, newValue: any) => {
-                setFormValue({ ...formValue, parent: newValue.uid });
-              }}
-            />
-            <TextField
-              id="outlined-helperText"
-              label="Category"
-              helperText="For Subcategory please select parant "
-              onChange={(event: any) => {
-                setFormValue({ ...formValue, name: event.target.value });
-              }}
-            />
-            <Button variant="contained" sx={{ mb: 2, float: 'right' }} onClick={()=>saveCategory()}>
-              Save
-            </Button>
-          </div>
-        </Box>
-      </Modal>
-    </Container>
+                <TableCell align="right"></TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Modal
+          open={open}
+          onClose={() => setOpen(false)}
+          aria-labelledby="modal-modal-title"
+          aria-describedby="modal-modal-description"
+          sx={{
+            '& .MuiTextField-root': { m: 1, width: '100%' },
+          }}
+        >
+          <Box component="form" sx={style} noValidate autoComplete="off">
+            {success && <Alert severity="success">Successfully Updated</Alert>}
+            <div>
+              <Autocomplete
+                options={category}
+                getOptionLabel={(option: any) => option?.name}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Parent"
+                    variant="standard"
+                  />
+                )}
+                onChange={(event, newValue: any) => {
+                  setFormValue({ ...formValue, parent: newValue?.uid });
+                }}
+                // value={''}
+                inputValue={parent}
+              />
+              <TextField
+                id="outlined-helperText"
+                label="Category"
+                helperText="For Subcategory please select parant "
+                value={formValue.name}
+                onChange={(event: any) => {
+                  setFormValue({ ...formValue, name: event.target.value });
+                }}
+              />
+              <Button
+                variant="contained"
+                sx={{ mb: 2, float: 'right' }}
+                onClick={() => saveCategory()}
+              >
+                Save
+              </Button>
+            </div>
+          </Box>
+        </Modal>
+      </Container>
+    </>
   );
 };
 export default Category;
-
