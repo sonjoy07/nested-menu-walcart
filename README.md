@@ -2,6 +2,13 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
+After cloning or download the project you have to install the node_modules by 
+
+```bash
+npm install
+or yarn 
+```
+
 First, run the development server:
 
 ```bash
